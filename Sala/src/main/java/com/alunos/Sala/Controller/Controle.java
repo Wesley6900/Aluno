@@ -83,8 +83,8 @@ public class Controle {
     }
 
     @PutMapping("substituirObj")
-    public ResponseEntity<Aluno> substituirObj(Aluno obj){
-        return (ResponseEntity<Aluno>) servicos.substituirObj(obj);
+    public ResponseEntity<?> substituirObj(Aluno obj){
+        return servicos.substituirObj(obj);
     }
 
     @GetMapping("/letraInicial")
