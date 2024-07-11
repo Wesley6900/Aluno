@@ -1,57 +1,106 @@
-package com.alunos.Sala.Model;
+package com.alunos.Sala.Services;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import java.util.List;
 
-@Entity
-@Table(name = "alunos")
-public class Aluno {
-    //id do metodo que sera localizado
-    @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private Integer codigoId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 
-    private String nome;
-    private Integer idade;
-    private String serie;
+import com.alunos.Sala.Model.Aluno;
+import com.alunos.Sala.Model.Mensagem;
+import com.alunos.Sala.Repository.Repositorio;
 
-    public Aluno(){
-        this.nome = "Sem nome";
-        this.idade = -1;
-        this.serie = null;
-        
-        this.codigoId = 0;
+import jakarta.transaction.Transactional;
+
+@Service
+public class Servicos {
+    @Autowired
+    Repositorio acao;
+
+    @Autowired
+    Mensagem mensagemC;
+
+    public ResponseEntity<?> cadastrar(Aluno obj){
+        if(obj.getNome().equals("Sem nome") || obj.getNome() == null){
+            mensagemC.setMensagemGerada("Não deixe o nome em branco!");
+            return new ResponseEntity<>(mensagemC.getMensagemGerada(), HttpStatus.BAD_REQUEST);
+        }else if(obj.getIdade() < 0 || obj.getIdade() == 0){
+            mensagemC.setMensagemGerada("Idade Invalida!");
+            return new ResponseEntity<>(mensagemC.getMensagemGerada(), HttpStatus.BAD_REQUEST);
+        }else if(obj.getSerie().isEmpty() || obj.getSerie() == null){
+            mensagemC.setMensagemGerada("Serie Vazia! digite qual serie o aluno esta!");
+            return new ResponseEntity<>(mensagemC.getMensagemGerada(), HttpStatus.BAD_REQUEST);
+        }else{
+            return new ResponseEntity<>(acao.save(obj), HttpStatus.CREATED);
+        }
     }
 
-    public Integer getCodigoId() {
-        return codigoId;
-    }
-    public void setCodigoId(Integer codigoId) {
-        this.codigoId = codigoId;
+    public ResponseEntity<?> mostrarSelecionado(Integer codigoId){
+
+        if(codigoId < 0){
+            mensagemC.setMensagemGerada("Essa numeração de Id não existe no banco de dados!");
+            return new ResponseEntity<>(mensagemC.getMensagemGerada(),HttpStatus.BAD_REQUEST);
+        }else{
+            if(acao.countByCodigoId(codigoId) == 0){
+                mensagemC.setMensagemGerada("Esse obj não existe no banco de dados!");
+                return new ResponseEntity<>(mensagemC.getMensagemGerada(), HttpStatus.NOT_FOUND);
+            }else{
+                return new ResponseEntity<>(acao.findByCodigoId(codigoId), HttpStatus.OK);
+            }
+
+        }
     }
 
-    public String getNome() {
-        return nome;
-    }
-    public void setNome(String nome) {
-        this.nome = nome;
+    public ResponseEntity<List <Aluno>> mostrarLista (){
+        return new ResponseEntity<>(acao.findAll(), HttpStatus.OK);
     }
 
-    public Integer getIdade() {
-        return idade;
-    }
-    public void setIdade(Integer idade) {
-        this.idade = idade;
+    @Transactional
+    public void deletar(Integer codigoId){
+        acao.deleteByCodigoId(codigoId);
     }
 
-    public String getSerie() {
-        return serie;
+    @Transactional
+    public void deletarTudo(){
+        acao.deleteAll();
+        acao.resetAutoIncrement();
     }
 
-    public void setSerie(String serie) {
-        this.serie = serie;
+    public ResponseEntity<List <Aluno>> listaOrdenadaAZ(){
+        return new ResponseEntity<>(acao.findByOrderByNomeAsc(), HttpStatus.OK);
+    }
+
+    public ResponseEntity<List <Aluno>> listaOrdenadaZA(){
+        return new ResponseEntity<>(acao.findByOrderByNomeDesc(), HttpStatus.OK);
+    }
+
+    public ResponseEntity<List <Aluno>> buscaPalavra(String palavra){
+        return new ResponseEntity<>(acao.findByNomeContaining(palavra), HttpStatus.OK);
+    }
+
+    public ResponseEntity<?> substituirObj(Aluno obj){
+        if(acao.countByCodigoId(obj.getCodigoId()) == 0){
+            mensagemC.setMensagemGerada("O codigo informado não existe no banco de dados!");
+            return new ResponseEntity<>(mensagemC, HttpStatus.NOT_FOUND);
+        }else if(obj.getNome().equals("")){
+            mensagemC.setMensagemGerada("O nome do aluno esta em branco!");
+            return new ResponseEntity<>(mensagemC, HttpStatus.BAD_REQUEST);
+        }else if(obj.getIdade() <= 0){
+            mensagemC.setMensagemGerada("Idade Invalida");
+            return new ResponseEntity<>(mensagemC, HttpStatus.BAD_REQUEST);
+        }else if(obj.getSerie().equals("")){
+            return new ResponseEntity<>(mensagemC, HttpStatus.BAD_REQUEST);
+        }else{
+            return new ResponseEntity<>(acao.save(obj), HttpStatus.OK);
+        }
+    }
+
+    public ResponseEntity<List <Aluno>> buscaInicial(String letraInicial){
+        return new ResponseEntity<>(acao.findByNomeStartingWith(letraInicial), HttpStatus.OK);
+    }
+
+    public ResponseEntity<List <Aluno>> buscaFinal(String letraFinal){
+        return new ResponseEntity<>(acao.findByNomeEndsWith(letraFinal), HttpStatus.OK);
     }
 }
